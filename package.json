@@ -1,0 +1,23 @@
+{
+  "name": "trustlens",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev:web": "npm --workspace apps/web run dev",
+    "dev:api": "npm --workspace apps/api run dev",
+    "dev:ai": "npm --workspace apps/ai run dev",
+    "dev": "concurrently -k \"npm:dev:web\" \"npm:dev:api\" \"npm:dev:ai\"",
+    "build": "npm --workspace apps/web run build && npm --workspace apps/api run build",
+    "lint": "npm --workspace apps/web run lint",
+    "start": "npm --workspace apps/api run start"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
