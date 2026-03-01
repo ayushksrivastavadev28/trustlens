@@ -2,10 +2,11 @@ import { Router } from "express";
 import { ObjectId } from "mongodb";
 import { requireAuth, requirePro } from "../middleware/auth";
 import { getCollections } from "../db";
+import { asyncHandler } from "../asyncHandler";
 
 const router = Router();
 
-router.get("/history", requireAuth, requirePro, async (req, res) => {
+router.get("/history", requireAuth, requirePro, asyncHandler(async (req, res) => {
   const { scans } = await getCollections();
   const items = await scans
     .find({ userId: req.user!._id })
@@ -22,9 +23,9 @@ router.get("/history", requireAuth, requirePro, async (req, res) => {
       summary: scan.ai?.summary || ""
     }))
   });
-});
+}));
 
-router.get("/scans/:scanId", requireAuth, async (req, res) => {
+router.get("/scans/:scanId", requireAuth, asyncHandler(async (req, res) => {
   if (!ObjectId.isValid(req.params.scanId)) {
     return res.status(400).json({ error: "Invalid scan id" });
   }
@@ -53,6 +54,6 @@ router.get("/scans/:scanId", requireAuth, async (req, res) => {
       safeRewrite: scan.ai?.safeRewrite || null
     }
   });
-});
+}));
 
 export default router;

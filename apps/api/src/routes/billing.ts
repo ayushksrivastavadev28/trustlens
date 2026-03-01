@@ -3,10 +3,11 @@ import { ObjectId } from "mongodb";
 import { requireAuth } from "../middleware/auth";
 import { config } from "../config";
 import { getCollections } from "../db";
+import { asyncHandler } from "../asyncHandler";
 
 const router = Router();
 
-router.get("/billing/status", requireAuth, async (req, res) => {
+router.get("/billing/status", requireAuth, asyncHandler(async (req, res) => {
   const user = req.user!;
   const userId = user._id!;
   if (!config.REVENUECAT_SECRET_API_KEY) {
@@ -33,9 +34,9 @@ router.get("/billing/status", requireAuth, async (req, res) => {
   await users.updateOne({ _id: userId }, { $set: { plan: isPro ? "pro" : "free" } });
 
   return res.json({ isPro, entitlementId: config.REVENUECAT_ENTITLEMENT_ID });
-});
+}));
 
-router.post("/webhooks/revenuecat", async (req, res) => {
+router.post("/webhooks/revenuecat", asyncHandler(async (req, res) => {
   if (!config.REVENUECAT_SECRET_API_KEY) {
     return res.status(503).json({ error: "RevenueCat is not configured" });
   }
@@ -58,6 +59,6 @@ router.post("/webhooks/revenuecat", async (req, res) => {
   }
 
   return res.json({ ok: true });
-});
+}));
 
 export default router;

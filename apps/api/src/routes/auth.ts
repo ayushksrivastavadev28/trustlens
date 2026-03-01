@@ -7,6 +7,7 @@ import { getCollections } from "../db";
 import { dayKey } from "../utils";
 import { ObjectId } from "mongodb";
 import { isFirebaseConfigured, verifyFirebaseIdToken } from "../services/firebase";
+import { asyncHandler } from "../asyncHandler";
 
 const router = Router();
 
@@ -37,7 +38,7 @@ function publicUser(user: { _id?: ObjectId; email: string; plan: string; firebas
   return { id: user._id?.toString(), email: user.email, plan: user.plan, firebaseUid: user.firebaseUid || null };
 }
 
-router.post("/register", async (req, res) => {
+router.post("/register", asyncHandler(async (req, res) => {
   const parsed = authSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Invalid input" });
 
@@ -64,9 +65,9 @@ router.post("/register", async (req, res) => {
 
   const user = await users.findOne({ _id: new ObjectId(userId) });
   return res.json({ token, user: user ? publicUser(user) : null });
-});
+}));
 
-router.post("/login", async (req, res) => {
+router.post("/login", asyncHandler(async (req, res) => {
   const parsed = authSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Invalid input" });
 
@@ -86,9 +87,9 @@ router.post("/login", async (req, res) => {
   setAuthCookie(res, token);
 
   return res.json({ token, user: publicUser(user) });
-});
+}));
 
-router.get("/me", async (req, res) => {
+router.get("/me", asyncHandler(async (req, res) => {
   try {
     const token = req.cookies?.auth_token || req.headers.authorization?.replace("Bearer ", "");
     if (!token) return res.status(401).json({ error: "Unauthorized" });
@@ -100,9 +101,9 @@ router.get("/me", async (req, res) => {
   } catch {
     return res.status(401).json({ error: "Unauthorized" });
   }
-});
+}));
 
-router.post("/firebase", async (req, res) => {
+router.post("/firebase", asyncHandler(async (req, res) => {
   const parsed = firebaseSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Invalid Firebase token payload" });
 
@@ -155,7 +156,7 @@ router.post("/firebase", async (req, res) => {
   } catch {
     return res.status(401).json({ error: "Invalid or expired Firebase token" });
   }
-});
+}));
 
 router.post("/logout", async (_req, res) => {
   res.clearCookie("auth_token", { path: "/" });

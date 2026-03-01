@@ -7,6 +7,7 @@ import { sanitizeUrls, dayKey, labelToRisk, computeTrustScore, riskLevelFromScor
 import { callAI } from "../services/ai";
 import { getCollections } from "../db";
 import { computeCommunitySignals } from "../services/community";
+import { asyncHandler } from "../asyncHandler";
 
 const router = Router();
 
@@ -16,7 +17,7 @@ const schema = z.object({
   urls: z.array(z.string()).optional().default([])
 });
 
-router.post("/analyze", requireAuth, analyzeLimiter, async (req, res) => {
+router.post("/analyze", requireAuth, analyzeLimiter, asyncHandler(async (req, res) => {
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Invalid input" });
 
@@ -100,6 +101,6 @@ router.post("/analyze", requireAuth, analyzeLimiter, async (req, res) => {
     },
     ...aiResponse
   });
-});
+}));
 
 export default router;
