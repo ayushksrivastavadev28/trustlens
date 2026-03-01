@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "type": "commonjs",
-  "main": "dist/index.js",
+  "main": "dist/src/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/index.js",
+    "start": "node dist/src/index.js",
     "seed:reports": "tsx scripts/seed-reports.ts"
   },
   "dependencies": {
