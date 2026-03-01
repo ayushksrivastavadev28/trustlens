@@ -7,7 +7,9 @@ tldextract==5.1.2
 python-whois==0.9.4
 numpy==1.26.4
 transformers==4.38.2
-torch==2.2.1
+# Force CPU-only torch to avoid pulling multi-GB CUDA runtime wheels.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.2.1+cpu
 sentence-transformers==2.6.1
 transformers-interpret==0.10.0
 pygod==1.0.0
