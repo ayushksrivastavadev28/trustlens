@@ -83,6 +83,9 @@ Create two services from the same repo.
 ### Vercel (Web)
 - Root Directory: `apps/web`
 - Framework: Next.js
+- Set both env vars:
+  - `API_BASE_URL` = your public API URL (example: `https://your-api.up.railway.app`)
+  - `NEXT_PUBLIC_API_BASE_URL` = same public API URL
 
 ## RevenueCat Setup
 - Create entitlement id: `pro`
@@ -116,6 +119,7 @@ Create two services from the same repo.
 ## Environment Variables
 
 ### apps/web
+- `API_BASE_URL`
 - `NEXT_PUBLIC_API_BASE_URL`
 - `NEXT_PUBLIC_REVENUECAT_WEB_PUBLIC_API_KEY`
 - `NEXT_PUBLIC_REVENUECAT_ENTITLEMENT_ID`
