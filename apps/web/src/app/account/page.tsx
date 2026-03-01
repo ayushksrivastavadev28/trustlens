@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { billingStatus, firebaseLogin, logout } from "@/lib/api";
+import { billingStatus, firebaseLogin, logout, login, register, getMe } from "@/lib/api";
 import { configurePurchases, getClientProStatus } from "@/lib/revenuecat";
 import { auth, firebaseEnabled, googleProvider } from "@/lib/firebase";
 
@@ -63,6 +63,16 @@ export default function AccountPage() {
     await refreshBilling();
   };
 
+  const syncApiSession = async (sessionUser?: SessionUser | null) => {
+    const resolved = sessionUser || (await getMe().then((r) => r.user).catch(() => null));
+    if (!resolved) {
+      throw new Error("Failed to establish API session.");
+    }
+    setUser(resolved);
+    configurePurchases(resolved.id);
+    await refreshBilling();
+  };
+
   useEffect(() => {
     if (!firebaseReady || !auth) {
       setLoading(false);
@@ -94,10 +104,14 @@ export default function AccountPage() {
   }, [firebaseReady]);
 
   const handleLogin = async () => {
-    if (!auth) return;
     setBusy(true);
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
+      if (firebaseReady && auth) {
+        await signInWithEmailAndPassword(auth, email.trim(), password);
+      } else {
+        const session = await login({ email: email.trim(), password });
+        await syncApiSession(session?.user || null);
+      }
       toast.success("Signed in");
     } catch (err) {
       toast.error(toFriendlyError(err));
@@ -107,10 +121,14 @@ export default function AccountPage() {
   };
 
   const handleRegister = async () => {
-    if (!auth) return;
     setBusy(true);
     try {
-      await createUserWithEmailAndPassword(auth, email.trim(), password);
+      if (firebaseReady && auth) {
+        await createUserWithEmailAndPassword(auth, email.trim(), password);
+      } else {
+        const session = await register({ email: email.trim(), password });
+        await syncApiSession(session?.user || null);
+      }
       toast.success("Account created");
     } catch (err) {
       toast.error(toFriendlyError(err));
@@ -120,7 +138,7 @@ export default function AccountPage() {
   };
 
   const handleGoogleLogin = async () => {
-    if (!auth || !googleProvider) return;
+    if (!firebaseReady || !auth || !googleProvider) return;
     setBusy(true);
     try {
       await signInWithPopup(auth, googleProvider);
@@ -155,28 +173,17 @@ export default function AccountPage() {
     );
   }
 
-  if (!firebaseReady) {
-    return (
-      <main className="min-h-screen px-6 py-12">
-        <div className="mx-auto max-w-3xl">
-          <Card className="glass p-6 shadow-soft">
-            <h1 className="text-2xl font-semibold">Firebase setup required</h1>
-            <p className="mt-3 text-sm text-muted-foreground">
-              Set Firebase web environment variables in <code>apps/web/.env.local</code> to enable sign-in.
-            </p>
-          </Card>
-        </div>
-      </main>
-    );
-  }
-
   if (!user) {
     return (
       <main className="min-h-screen px-6 py-12">
         <div className="mx-auto max-w-3xl">
           <Card className="glass p-6 shadow-soft">
             <h1 className="text-2xl font-semibold">Account</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Secure sign-in powered by Firebase Authentication.</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {firebaseReady
+                ? "Sign in with Firebase (email/password or Google)."
+                : "Sign in with API email/password mode. Add Firebase vars later for Google login."}
+            </p>
             <Tabs defaultValue="login" className="mt-6">
               <TabsList>
                 <TabsTrigger value="login">Login</TabsTrigger>
@@ -187,15 +194,19 @@ export default function AccountPage() {
                 <Input placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
                 <div className="flex flex-wrap gap-3">
                   <Button onClick={handleLogin} disabled={busy}>{busy ? "Please wait..." : "Login"}</Button>
-                  <Button variant="outline" onClick={handleGoogleLogin} disabled={busy}>Google</Button>
+                  {firebaseReady ? (
+                    <Button variant="outline" onClick={handleGoogleLogin} disabled={busy}>Google</Button>
+                  ) : null}
                 </div>
               </TabsContent>
               <TabsContent value="register" className="mt-4 space-y-3">
                 <Input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-                <Input placeholder="Password (min 6 chars)" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <Input placeholder="Password (min 8 chars)" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
                 <div className="flex flex-wrap gap-3">
                   <Button onClick={handleRegister} disabled={busy}>{busy ? "Please wait..." : "Create Account"}</Button>
-                  <Button variant="outline" onClick={handleGoogleLogin} disabled={busy}>Google</Button>
+                  {firebaseReady ? (
+                    <Button variant="outline" onClick={handleGoogleLogin} disabled={busy}>Google</Button>
+                  ) : null}
                 </div>
               </TabsContent>
             </Tabs>

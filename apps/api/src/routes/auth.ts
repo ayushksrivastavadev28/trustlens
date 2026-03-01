@@ -34,14 +34,15 @@ function signSession(userId: string) {
 }
 
 function publicUser(user: { _id?: ObjectId; email: string; plan: string; firebaseUid?: string }) {
-  return { id: user._id, email: user.email, plan: user.plan, firebaseUid: user.firebaseUid || null };
+  return { id: user._id?.toString(), email: user.email, plan: user.plan, firebaseUid: user.firebaseUid || null };
 }
 
 router.post("/register", async (req, res) => {
   const parsed = authSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Invalid input" });
 
-  const { email, password } = parsed.data;
+  const email = parsed.data.email.trim().toLowerCase();
+  const { password } = parsed.data;
   const { users } = await getCollections();
   const existing = await users.findOne({ email });
   if (existing) return res.status(409).json({ error: "Email already registered" });
@@ -69,10 +70,14 @@ router.post("/login", async (req, res) => {
   const parsed = authSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Invalid input" });
 
-  const { email, password } = parsed.data;
+  const email = parsed.data.email.trim().toLowerCase();
+  const { password } = parsed.data;
   const { users } = await getCollections();
   const user = await users.findOne({ email });
   if (!user) return res.status(401).json({ error: "Invalid credentials" });
+  if (!user.passwordHash) {
+    return res.status(401).json({ error: "This account uses Firebase login. Sign in with Firebase or Google." });
+  }
 
   const ok = await bcrypt.compare(password, user.passwordHash);
   if (!ok) return res.status(401).json({ error: "Invalid credentials" });

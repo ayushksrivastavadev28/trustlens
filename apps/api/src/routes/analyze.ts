@@ -38,13 +38,18 @@ router.post("/analyze", requireAuth, analyzeLimiter, async (req, res) => {
   const urls = sanitizeUrls(parsed.data.urls || []);
   const requestId = randomUUID();
 
-  const aiResponse = await callAI({
-    text: parsed.data.text,
-    inputType: parsed.data.inputType,
-    urls,
-    locale: "auto",
-    requestId
-  });
+  let aiResponse: any;
+  try {
+    aiResponse = await callAI({
+      text: parsed.data.text,
+      inputType: parsed.data.inputType,
+      urls,
+      locale: "auto",
+      requestId
+    });
+  } catch (err: any) {
+    return res.status(502).json({ error: "AI service unavailable", detail: err?.message || "Unknown AI error" });
+  }
 
   const community = await computeCommunitySignals(aiResponse.embedding || []);
 

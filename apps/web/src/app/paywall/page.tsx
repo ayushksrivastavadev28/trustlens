@@ -2,20 +2,30 @@
 
 import { useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
-import { configurePurchases, presentPaywall } from "@/lib/revenuecat";
+import { configurePurchases, isRevenueCatConfigured, presentPaywall } from "@/lib/revenuecat";
 import { getMe } from "@/lib/api";
+import { toast } from "sonner";
 
 export default function PaywallPage() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const run = async () => {
-      const me = await getMe().catch(() => null);
-      if (me?.user?.id) {
-        configurePurchases(me.user.id);
+      if (!isRevenueCatConfigured()) {
+        toast.error("RevenueCat is not configured. Add NEXT_PUBLIC_REVENUECAT_WEB_PUBLIC_API_KEY.");
+        return;
       }
-      if (containerRef.current) {
-        await presentPaywall(containerRef.current);
+
+      try {
+        const me = await getMe().catch(() => null);
+        if (me?.user?.id) {
+          configurePurchases(me.user.id);
+        }
+        if (containerRef.current) {
+          await presentPaywall(containerRef.current);
+        }
+      } catch (err: any) {
+        toast.error(err?.message || "Failed to load paywall");
       }
     };
     run();

@@ -85,7 +85,21 @@ export default function ResultPage() {
     );
   }
 
-  const riskBadge = scan.riskLevel === "HIGH" ? "bg-red-100 text-red-600" : scan.riskLevel === "MEDIUM" ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700";
+  const ai = scan.ai || scan;
+  const displayedTrustScore = scan.trustScore ?? ai.trustScore ?? 0;
+  const displayedRiskLevel = scan.riskLevel ?? ai.riskLevel ?? "MEDIUM";
+  const displayedSummary = ai.summary || "No summary available for this scan.";
+  const displayedProof = ai.proof || [];
+  const displayedHighlights = ai.highlights || [];
+  const displayedUrlIntel = ai.urlIntel || { overallRisk: 0, items: [] };
+  const displayedActions = ai.suggestedActions || [];
+
+  const riskBadge =
+    displayedRiskLevel === "HIGH"
+      ? "bg-red-100 text-red-600"
+      : displayedRiskLevel === "MEDIUM"
+        ? "bg-amber-100 text-amber-700"
+        : "bg-emerald-100 text-emerald-700";
 
   return (
     <main className="min-h-screen px-6 py-12">
@@ -94,20 +108,20 @@ export default function ResultPage() {
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
               <h1 className="text-2xl font-semibold">TrustLens Result</h1>
-              <p className="mt-2 text-sm text-muted-foreground">Request ID: {scan.requestId}</p>
+              <p className="mt-2 text-sm text-muted-foreground">Request ID: {scan.requestId || ai.requestId || "n/a"}</p>
               <div className="mt-4 flex items-center gap-2">
-                <Badge className={riskBadge}>{scan.riskLevel} Risk</Badge>
+                <Badge className={riskBadge}>{displayedRiskLevel} Risk</Badge>
                 <span className="text-sm text-muted-foreground">Trust Score</span>
               </div>
             </div>
-            <TrustScoreRing score={scan.trustScore} />
+            <TrustScoreRing score={displayedTrustScore} />
           </div>
-          <p className="mt-4 text-sm text-muted-foreground">{scan.summary}</p>
+          <p className="mt-4 text-sm text-muted-foreground">{displayedSummary}</p>
         </Card>
 
         <Card className="glass p-6 shadow-soft">
           <h2 className="text-lg font-semibold">Highlighted Message</h2>
-          <HighlightedText text={scan.input?.text || ""} highlights={scan.highlights || []} />
+          <HighlightedText text={scan.input?.text || ""} highlights={displayedHighlights} />
         </Card>
 
         <Card className="glass p-6 shadow-soft">
@@ -116,19 +130,19 @@ export default function ResultPage() {
             <Button variant="outline" onClick={exportPdf}>Export PDF</Button>
           </div>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
-            {scan.proof?.map((item: any, idx: number) => (
+            {displayedProof.map((item: any, idx: number) => (
               <ProofCard key={idx} {...item} />
             ))}
           </div>
         </Card>
 
-        <UrlIntelList intel={scan.urlIntel} />
+        <UrlIntelList intel={displayedUrlIntel} />
         <CommunitySignals community={scan.community} />
 
         <Card className="glass p-6 shadow-soft">
           <h2 className="text-lg font-semibold">Suggested Actions</h2>
           <ul className="mt-3 list-disc pl-6 text-sm text-muted-foreground">
-            {scan.suggestedActions?.map((a: string, i: number) => (
+            {displayedActions.map((a: string, i: number) => (
               <li key={i}>{a}</li>
             ))}
           </ul>

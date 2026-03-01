@@ -7,8 +7,13 @@ let configured = false;
 let purchases: Purchases | null = null;
 let configuredAppUserId: string | null = null;
 
+export function isRevenueCatConfigured() {
+  return Boolean(apiKey && entitlementId);
+}
+
 export function configurePurchases(appUserId?: string) {
   if (typeof window === "undefined") return;
+  if (!isRevenueCatConfigured()) return;
   const resolvedAppUserId = appUserId || "guest-user";
 
   if (!configured) {
@@ -25,6 +30,9 @@ export function configurePurchases(appUserId?: string) {
 }
 
 export async function presentPaywall(target: HTMLElement) {
+  if (!isRevenueCatConfigured()) {
+    throw new Error("RevenueCat Web SDK is not configured");
+  }
   if (!purchases) configurePurchases();
   if (!purchases) return;
   await purchases.presentPaywall({ htmlTarget: target });
@@ -32,6 +40,7 @@ export async function presentPaywall(target: HTMLElement) {
 
 export async function getClientProStatus(): Promise<boolean> {
   try {
+    if (!isRevenueCatConfigured()) return false;
     if (!purchases) configurePurchases();
     if (!purchases) return false;
     const info: any = await purchases.getCustomerInfo();

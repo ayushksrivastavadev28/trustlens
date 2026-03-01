@@ -1,6 +1,9 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL as string;
 
 async function apiFetch(path: string, options: RequestInit = {}) {
+  if (!API_BASE) {
+    throw new Error("NEXT_PUBLIC_API_BASE_URL is not configured");
+  }
   const res = await fetch(`${API_BASE}${path}`, {
     credentials: "include",
     headers: {

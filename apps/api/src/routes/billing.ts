@@ -9,6 +9,10 @@ const router = Router();
 router.get("/billing/status", requireAuth, async (req, res) => {
   const user = req.user!;
   const userId = user._id!;
+  if (!config.REVENUECAT_SECRET_API_KEY) {
+    return res.json({ isPro: user.plan === "pro", entitlementId: config.REVENUECAT_ENTITLEMENT_ID });
+  }
+
   const url = `https://api.revenuecat.com/v1/subscribers/${userId.toString()}`;
   const rc = await fetch(url, {
     headers: {
@@ -32,6 +36,9 @@ router.get("/billing/status", requireAuth, async (req, res) => {
 });
 
 router.post("/webhooks/revenuecat", async (req, res) => {
+  if (!config.REVENUECAT_SECRET_API_KEY) {
+    return res.status(503).json({ error: "RevenueCat is not configured" });
+  }
   const auth = req.headers.authorization;
   if (auth && auth !== `Bearer ${config.REVENUECAT_SECRET_API_KEY}`) {
     return res.status(401).json({ error: "Unauthorized" });
