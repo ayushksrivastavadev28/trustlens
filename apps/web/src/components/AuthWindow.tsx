@@ -1,11 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Chrome, LogIn, Mail, Shield, UserPlus } from "lucide-react";
+import { Chrome, LogIn, Shield, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { AuthError, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { auth, firebaseEnabled, googleProvider } from "@/lib/firebase";
 import { firebaseLogin, login, register } from "@/lib/api";
+import { isPopupClosedError, isUnauthorizedDomainError, unauthorizedDomainMessage } from "@/lib/firebase-errors";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
@@ -26,7 +27,8 @@ function toFriendlyError(err: unknown) {
   if (code.includes("auth/invalid-credential")) return "Invalid email or password.";
   if (code.includes("auth/email-already-in-use")) return "Email is already registered.";
   if (code.includes("auth/weak-password")) return "Password must be at least 6 characters.";
-  if (code.includes("auth/popup-closed-by-user")) return "Google sign-in popup was closed.";
+  if (isPopupClosedError(err)) return "Google sign-in popup was closed.";
+  if (isUnauthorizedDomainError(err)) return unauthorizedDomainMessage();
   return (err as Error)?.message || "Authentication failed.";
 }
 
@@ -48,16 +50,28 @@ export function AuthWindow({ open, onComplete }: AuthWindowProps) {
     setLoading(true);
     try {
       if (firebaseEnabled && auth) {
-        if (mode === "login") {
-          const cred = await signInWithEmailAndPassword(auth, normalizedEmail, password);
-          const idToken = await cred.user.getIdToken();
-          const session = await firebaseLogin(idToken);
-          onComplete(session.user);
-        } else {
-          const cred = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
-          const idToken = await cred.user.getIdToken();
-          const session = await firebaseLogin(idToken);
-          onComplete(session.user);
+        try {
+          if (mode === "login") {
+            const cred = await signInWithEmailAndPassword(auth, normalizedEmail, password);
+            const idToken = await cred.user.getIdToken();
+            const session = await firebaseLogin(idToken);
+            onComplete(session.user);
+          } else {
+            const cred = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
+            const idToken = await cred.user.getIdToken();
+            const session = await firebaseLogin(idToken);
+            onComplete(session.user);
+          }
+        } catch (firebaseErr) {
+          if (isUnauthorizedDomainError(firebaseErr)) {
+            const session = mode === "login"
+              ? await login({ email: normalizedEmail, password })
+              : await register({ email: normalizedEmail, password });
+            toast.warning("Firebase domain is not authorized. Signed in using local TrustLens auth.");
+            onComplete(session.user);
+            return;
+          }
+          throw firebaseErr;
         }
       } else {
         const session = mode === "login"
@@ -84,6 +98,10 @@ export function AuthWindow({ open, onComplete }: AuthWindowProps) {
       const session = await firebaseLogin(idToken);
       onComplete(session.user);
     } catch (err) {
+      if (isUnauthorizedDomainError(err)) {
+        toast.error(unauthorizedDomainMessage());
+        return;
+      }
       toast.error(toFriendlyError(err));
     } finally {
       setLoading(false);
@@ -145,14 +163,6 @@ export function AuthWindow({ open, onComplete }: AuthWindowProps) {
             Continue with Google
           </button>
 
-          <button
-            onClick={handleGoogleAuth}
-            disabled={loading}
-            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white font-semibold text-zinc-700 transition hover:border-red-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
-          >
-            <Mail size={18} className="text-red-500" />
-            Continue with Gmail
-          </button>
         </div>
 
         <p className="mt-6 text-center text-sm text-zinc-500 dark:text-zinc-400">

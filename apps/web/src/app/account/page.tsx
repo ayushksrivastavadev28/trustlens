@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { billingStatus, firebaseLogin, logout, login, register, getMe } from "@/lib/api";
 import { configurePurchases, getClientProStatus } from "@/lib/revenuecat";
 import { auth, firebaseEnabled, googleProvider } from "@/lib/firebase";
+import { isPopupClosedError, isUnauthorizedDomainError, unauthorizedDomainMessage } from "@/lib/firebase-errors";
 
 type SessionUser = {
   id: string;
@@ -31,7 +32,8 @@ function toFriendlyError(err: unknown) {
   if (code.includes("auth/invalid-credential")) return "Invalid email or password.";
   if (code.includes("auth/email-already-in-use")) return "Email is already registered.";
   if (code.includes("auth/weak-password")) return "Password must be at least 6 characters.";
-  if (code.includes("auth/popup-closed-by-user")) return "Google sign-in popup was closed.";
+  if (isPopupClosedError(err)) return "Google sign-in popup was closed.";
+  if (isUnauthorizedDomainError(err)) return unauthorizedDomainMessage();
   return (err as Error)?.message || "Authentication failed.";
 }
 
@@ -107,7 +109,17 @@ export default function AccountPage() {
     setBusy(true);
     try {
       if (firebaseReady && auth) {
-        await signInWithEmailAndPassword(auth, email.trim(), password);
+        try {
+          await signInWithEmailAndPassword(auth, email.trim(), password);
+        } catch (firebaseErr) {
+          if (isUnauthorizedDomainError(firebaseErr)) {
+            const session = await login({ email: email.trim(), password });
+            await syncApiSession(session?.user || null);
+            toast.warning("Firebase domain is not authorized. Signed in using local TrustLens auth.");
+            return;
+          }
+          throw firebaseErr;
+        }
       } else {
         const session = await login({ email: email.trim(), password });
         await syncApiSession(session?.user || null);
@@ -124,7 +136,17 @@ export default function AccountPage() {
     setBusy(true);
     try {
       if (firebaseReady && auth) {
-        await createUserWithEmailAndPassword(auth, email.trim(), password);
+        try {
+          await createUserWithEmailAndPassword(auth, email.trim(), password);
+        } catch (firebaseErr) {
+          if (isUnauthorizedDomainError(firebaseErr)) {
+            const session = await register({ email: email.trim(), password });
+            await syncApiSession(session?.user || null);
+            toast.warning("Firebase domain is not authorized. Registered using local TrustLens auth.");
+            return;
+          }
+          throw firebaseErr;
+        }
       } else {
         const session = await register({ email: email.trim(), password });
         await syncApiSession(session?.user || null);
@@ -144,6 +166,10 @@ export default function AccountPage() {
       await signInWithPopup(auth, googleProvider);
       toast.success("Signed in with Google");
     } catch (err) {
+      if (isUnauthorizedDomainError(err)) {
+        toast.error(unauthorizedDomainMessage());
+        return;
+      }
       toast.error(toFriendlyError(err));
     } finally {
       setBusy(false);

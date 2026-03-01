@@ -1,21 +1,40 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL as string;
+const API_BASE = "/api/backend";
 
 async function apiFetch(path: string, options: RequestInit = {}) {
-  if (!API_BASE) {
-    throw new Error("NEXT_PUBLIC_API_BASE_URL is not configured");
+  const endpoint = `${API_BASE}${path}`;
+  let res: Response;
+  try {
+    res = await fetch(endpoint, {
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers || {})
+      },
+      ...options
+    });
+  } catch {
+    const err: any = new Error(
+      "Failed to connect to TrustLens API. Ensure apps/api is running and NEXT_PUBLIC_API_BASE_URL is correct."
+    );
+    err.status = 0;
+    throw err;
   }
-  const res = await fetch(`${API_BASE}${path}`, {
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {})
-    },
-    ...options
-  });
 
   if (!res.ok) {
-    const text = await res.text();
-    const err: any = new Error(text || "Request failed");
+    let message = "Request failed";
+    const contentType = res.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      try {
+        const data = await res.json();
+        message = data?.error || data?.message || message;
+      } catch {
+        // fall through to generic message
+      }
+    } else {
+      const text = await res.text();
+      if (text) message = text;
+    }
+    const err: any = new Error(message);
     err.status = res.status;
     throw err;
   }

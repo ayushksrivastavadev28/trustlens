@@ -95,18 +95,23 @@ Create two services from the same repo.
 2. Authentication -> Sign-in method -> enable:
    - Email/Password
    - Google (optional but supported by UI)
-3. Project settings -> General -> your web app -> copy:
+3. Authentication -> Settings -> Authorized domains:
+   - Add `localhost`
+   - Add `127.0.0.1`
+   - Add your deployed frontend domain (for example `your-app.vercel.app`)
+   - Add any custom domain you use
+4. Project settings -> General -> your web app -> copy:
    - API key
    - Auth domain
    - Project ID
    - App ID
-4. Add these to `apps/web/.env.local`.
-5. Project settings -> Service accounts -> Generate new private key.
-6. Put service account values in `apps/api/.env`:
+5. Add these to `apps/web/.env.local`.
+6. Project settings -> Service accounts -> Generate new private key.
+7. Put service account values in `apps/api/.env`:
    - `FIREBASE_PROJECT_ID`
    - `FIREBASE_CLIENT_EMAIL`
    - `FIREBASE_PRIVATE_KEY`
-7. For `FIREBASE_PRIVATE_KEY`, keep line breaks as escaped `\\n` in `.env`.
+8. For `FIREBASE_PRIVATE_KEY`, keep line breaks as escaped `\\n` in `.env`.
 
 ## Environment Variables
 
