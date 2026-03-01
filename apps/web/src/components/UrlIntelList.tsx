@@ -13,10 +13,14 @@ export function UrlIntelList({ intel }: any) {
         {intel.items.map((item: any, idx: number) => (
           <div key={idx} className="rounded-2xl border border-border bg-white/70 p-3 text-sm">
             <p className="font-medium">{item.finalUrl}</p>
-            <p className="text-xs text-muted-foreground">Redirects: {item.redirects} • HTTPS: {item.https ? "Yes" : "No"}</p>
+            <p className="text-xs text-muted-foreground">
+              Redirects: {item.redirects} - HTTPS: {item.https ? "Yes" : "No"}
+            </p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {item.flags.map((f: string, i: number) => (
-                <span key={i} className="rounded-full bg-muted px-2 py-1 text-xs">{f}</span>
+              {item.flags.map((flag: string, i: number) => (
+                <span key={i} className="rounded-full bg-muted px-2 py-1 text-xs">
+                  {flag}
+                </span>
               ))}
             </div>
           </div>

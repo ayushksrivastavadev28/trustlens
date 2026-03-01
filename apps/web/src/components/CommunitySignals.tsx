@@ -9,7 +9,9 @@ export function CommunitySignals({ community }: any) {
       <div className="mt-4 space-y-2">
         {(community.topMatches || []).map((m: any, i: number) => (
           <div key={i} className="rounded-xl border border-border bg-white/70 p-3 text-sm">
-            <p className="font-medium">{m.type} • {m.label}</p>
+            <p className="font-medium">
+              {m.type} - {m.label}
+            </p>
             <p className="text-xs text-muted-foreground">Similarity: {(m.score * 100).toFixed(1)}%</p>
           </div>
         ))}
