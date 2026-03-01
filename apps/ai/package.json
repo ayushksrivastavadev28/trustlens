@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": ".venv\\Scripts\\python.exe -m uvicorn app.main:app --reload --port 8001"
+    "dev": "python -c \"import os,uvicorn; uvicorn.run('app.main:app', host='0.0.0.0', port=int(os.getenv('PORT','8001')), reload=True)\"",
+    "start": "python -c \"import os,uvicorn; uvicorn.run('app.main:app', host='0.0.0.0', port=int(os.getenv('PORT','8001')))\""
   }
 }
