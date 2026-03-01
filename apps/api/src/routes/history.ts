@@ -12,9 +12,9 @@ router.get("/history", requireAuth, requirePro, asyncHandler(async (req, res) =>
     .find({ userId: req.user!._id })
     .sort({ createdAt: -1 })
     .limit(50)
-    .toArray();
+    .toArray() as any[];
   return res.json({
-    items: items.map((scan) => ({
+    items: items.map((scan: any) => ({
       _id: scan._id?.toString(),
       trustScore: scan.trustScore,
       riskLevel: scan.riskLevel,

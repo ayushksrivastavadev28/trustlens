@@ -14,7 +14,7 @@ async function apiFetch(path: string, options: RequestInit = {}) {
     });
   } catch {
     const err: any = new Error(
-      "Failed to connect to TrustLens API. Ensure apps/api is running and NEXT_PUBLIC_API_BASE_URL is correct."
+      "Failed to connect to TrustLens API. Ensure apps/api is running and API_BASE_URL/NEXT_PUBLIC_API_BASE_URL is correct."
     );
     err.status = 0;
     throw err;

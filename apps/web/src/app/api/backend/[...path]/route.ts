@@ -3,25 +3,39 @@ import { NextRequest, NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 const BODY_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
-function buildTargetUrl(req: NextRequest, path: string[]) {
-  if (!API_BASE) return "";
-  const base = API_BASE.endsWith("/") ? API_BASE.slice(0, -1) : API_BASE;
+function isLocalHost(host: string) {
+  const h = host.toLowerCase();
+  return h.startsWith("localhost") || h.startsWith("127.0.0.1");
+}
+
+function resolveApiBase(req: NextRequest) {
+  const explicit = process.env.API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (explicit) return explicit;
+  if (isLocalHost(req.nextUrl.host)) return "http://127.0.0.1:5000";
+  return "";
+}
+
+function buildTargetUrl(req: NextRequest, path: string[], baseUrl: string) {
+  const base = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
   const joinedPath = path.join("/");
   return `${base}/${joinedPath}${req.nextUrl.search}`;
 }
 
 async function proxy(req: NextRequest, path: string[]) {
-  if (!API_BASE) {
+  const apiBase = resolveApiBase(req);
+  if (!apiBase) {
     return NextResponse.json(
-      { error: "Web proxy is not configured: NEXT_PUBLIC_API_BASE_URL is missing." },
+      {
+        error:
+          "Web proxy is not configured. Set API_BASE_URL (recommended) or NEXT_PUBLIC_API_BASE_URL in apps/web."
+      },
       { status: 500 }
     );
   }
 
-  const targetUrl = buildTargetUrl(req, path);
+  const targetUrl = buildTargetUrl(req, path, apiBase);
   const headers = new Headers();
   const passthrough = ["authorization", "content-type", "cookie", "user-agent", "accept"];
   for (const [key, value] of req.headers.entries()) {
@@ -48,10 +62,35 @@ async function proxy(req: NextRequest, path: string[]) {
   try {
     upstream = await fetch(targetUrl, init);
   } catch {
+    if (targetUrl.includes("localhost")) {
+      try {
+        const retryUrl = targetUrl.replace("localhost", "127.0.0.1");
+        upstream = await fetch(retryUrl, init);
+      } catch {
+        return NextResponse.json(
+          {
+            error:
+              "Unable to reach backend API from web proxy. Check apps/api is running and API_BASE_URL/NEXT_PUBLIC_API_BASE_URL is correct."
+          },
+          { status: 502 }
+        );
+      }
+    } else {
+      return NextResponse.json(
+        {
+          error:
+            "Unable to reach backend API from web proxy. Check apps/api is running and API_BASE_URL/NEXT_PUBLIC_API_BASE_URL is correct."
+        },
+        { status: 502 }
+      );
+    }
+  }
+
+  if (!upstream) {
     return NextResponse.json(
       {
         error:
-          "Unable to reach backend API from web proxy. Check apps/api is running and NEXT_PUBLIC_API_BASE_URL is correct."
+          "Unable to reach backend API from web proxy. Check apps/api is running and API_BASE_URL/NEXT_PUBLIC_API_BASE_URL is correct."
       },
       { status: 502 }
     );
