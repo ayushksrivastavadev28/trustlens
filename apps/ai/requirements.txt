@@ -13,3 +13,4 @@ torch==2.2.1+cpu
 sentence-transformers==2.6.1
 transformers-interpret==0.10.0
 pygod==1.0.0
+torch-geometric==2.5.3
