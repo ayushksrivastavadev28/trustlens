@@ -4,6 +4,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const BODY_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+const PROXY_TIMEOUT_MS = Number(process.env.API_PROXY_TIMEOUT_MS || 45000);
+const PROXY_RETRIES_PER_BASE = Number(process.env.API_PROXY_RETRIES_PER_BASE || 2);
 
 function isLocalHost(host: string) {
   const h = host.toLowerCase();
@@ -32,12 +34,20 @@ function unique(values: string[]) {
 
 function resolveApiBaseCandidates(req: NextRequest) {
   const rawEnv = process.env.API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "";
+  const rawList = process.env.API_BASE_URLS || "";
   const localFallback = isLocalHost(req.nextUrl.host) ? "http://127.0.0.1:5000" : "";
-  if (!rawEnv) return localFallback ? [localFallback] : [];
+  const fromList = rawList
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map(withScheme);
+
+  if (!rawEnv && fromList.length === 0) return localFallback ? [localFallback] : [];
 
   const raw = rawEnv.trim();
   const candidates: string[] = [];
-  candidates.push(withScheme(raw));
+  if (raw) candidates.push(withScheme(raw));
+  candidates.push(...fromList);
 
   // Recovery path: users sometimes set Railway private DNS in Vercel env.
   // Example: trustlensapi.railway.internal -> try generated public candidates too.
@@ -54,7 +64,7 @@ function resolveApiBaseCandidates(req: NextRequest) {
   return unique(candidates);
 }
 
-async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = 12000) {
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = PROXY_TIMEOUT_MS) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -101,12 +111,19 @@ async function proxy(req: NextRequest, path: string[]) {
   const tried: string[] = [];
   for (const base of candidates) {
     const targetUrl = buildTargetUrl(req, path, base);
-    tried.push(base);
-    try {
-      upstream = await fetchWithTimeout(targetUrl, init);
+    tried.push(targetUrl);
+    for (let attempt = 1; attempt <= PROXY_RETRIES_PER_BASE; attempt += 1) {
+      try {
+        upstream = await fetchWithTimeout(targetUrl, init);
+        break;
+      } catch {
+        if (attempt < PROXY_RETRIES_PER_BASE) {
+          await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
+        }
+      }
+    }
+    if (upstream) {
       break;
-    } catch {
-      // try next candidate
     }
   }
 
@@ -115,7 +132,9 @@ async function proxy(req: NextRequest, path: string[]) {
       {
         error:
           "Unable to reach backend API from web proxy. Check apps/api is running and API_BASE_URL/NEXT_PUBLIC_API_BASE_URL is correct.",
-        triedBases: tried
+        triedBases: tried,
+        hint:
+          "If deployed on Vercel, set API_BASE_URL to your Railway public URL (https://...up.railway.app), not localhost or railway.internal."
       },
       { status: 502 }
     );

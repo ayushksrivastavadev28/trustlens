@@ -27,6 +27,9 @@ async function apiFetch(path: string, options: RequestInit = {}) {
       try {
         const data = await res.json();
         message = data?.error || data?.message || message;
+        if (data?.hint) {
+          message = `${message} (${data.hint})`;
+        }
       } catch {
         // fall through to generic message
       }
