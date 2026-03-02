@@ -388,18 +388,15 @@ async def _hf_inference(model_id: str, payload: dict) -> object:
                 headers=headers,
                 timeout=HF_API_TIMEOUT_SECONDS,
             )
-            if response.status_code in {429, 503} and attempt < 2:
+            if response.status_code in {429, 503, 504} and attempt < 2:
                 await asyncio.sleep(1 + attempt)
                 continue
 
             text = response.text[:220]
-            if response.status_code == 410 and "router.huggingface.co" in response.text:
-                last_error = text
-                break
-
             if not response.is_success:
                 last_error = text
-                if attempt < 2:
+                # Retry only transient failures, not auth/not-found/bad-request errors.
+                if response.status_code >= 500 and attempt < 2:
                     await asyncio.sleep(1 + attempt)
                     continue
                 break

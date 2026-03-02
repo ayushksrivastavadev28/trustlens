@@ -49,7 +49,13 @@ router.post("/analyze", requireAuth, analyzeLimiter, asyncHandler(async (req, re
       requestId
     });
   } catch (err: any) {
-    return res.status(502).json({ error: "AI service unavailable", detail: err?.message || "Unknown AI error" });
+    const detail = String(err?.message || "Unknown AI error");
+    const isLikelyLocalhostConfig = detail.includes("localhost") && process.env.NODE_ENV === "production";
+    return res.status(502).json({
+      error: isLikelyLocalhostConfig
+        ? "AI service unavailable: AI_SERVICE_URL points to localhost in production. Use your Railway AI service URL."
+        : `AI service unavailable: ${detail}`
+    });
   }
 
   const community = await computeCommunitySignals(aiResponse.embedding || []);
