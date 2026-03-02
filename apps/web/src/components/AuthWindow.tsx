@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Chrome, LogIn, Shield, UserPlus } from "lucide-react";
+import { Chrome, LogIn, Mail, Shield, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { AuthError, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { auth, firebaseEnabled, googleProvider } from "@/lib/firebase";
@@ -161,6 +161,15 @@ export function AuthWindow({ open, onComplete }: AuthWindowProps) {
           >
             <Chrome size={18} className="text-blue-600" />
             Continue with Google
+          </button>
+
+          <button
+            onClick={handleGoogleAuth}
+            disabled={loading}
+            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white font-semibold text-zinc-700 transition hover:border-red-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+          >
+            <Mail size={18} className="text-red-600" />
+            Continue with Gmail
           </button>
 
         </div>

@@ -12,20 +12,20 @@ type OnboardingFlowProps = {
 const SLIDES = [
   {
     icon: Zap,
-    title: "Real-Time Trust Evaluation",
-    description: "Drop any message or link and get an instant trust score with explainable AI signals.",
+    title: "Real-Time Analysis",
+    description: "Instant trust scores for any message, link, or email.",
     gradient: "from-blue-500 to-cyan-500"
   },
   {
     icon: Shield,
-    title: "Proof Mode Explanations",
-    description: "Understand why content is risky using proof cards, tactics detection, and URL intelligence.",
+    title: "Explainable AI",
+    description: "See exactly why something is flagged as risky.",
     gradient: "from-emerald-500 to-teal-500"
   },
   {
     icon: Users,
     title: "Community Intelligence",
-    description: "Match suspicious patterns against community reports and historical scans for better decisions.",
+    description: "Learn from thousands of verified scam reports.",
     gradient: "from-purple-500 to-pink-500"
   }
 ];
@@ -35,18 +35,18 @@ export function OnboardingFlow({ open, onComplete }: OnboardingFlowProps) {
 
   if (!open) return null;
 
-  const slide = SLIDES[index];
+  const slide = SLIDES[index]!;
   const Icon = slide.icon;
 
   return (
-    <div className="fixed inset-0 z-[90] bg-white dark:bg-zinc-950">
+    <div className="fixed inset-0 z-[95] bg-white dark:bg-black">
       <div className="absolute inset-x-0 top-0 z-10 p-6">
-        <div className="mx-auto flex w-full max-w-md items-center justify-between">
+        <div className="mx-auto flex max-w-md items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
               <Shield className="text-white" size={18} />
             </div>
-            <span className="text-lg font-bold tracking-tight">TrustLens AI</span>
+            <span className="text-xl font-bold">TrustLens AI</span>
           </div>
           <button
             onClick={onComplete}
@@ -60,7 +60,7 @@ export function OnboardingFlow({ open, onComplete }: OnboardingFlowProps) {
       <div className="absolute inset-x-0 top-24 z-10 px-6">
         <div className="mx-auto flex max-w-md justify-center gap-2">
           {SLIDES.map((_, i) => (
-            <div
+            <motion.div
               key={i}
               className={`h-1.5 rounded-full transition-all duration-300 ${
                 i === index ? "w-8 bg-blue-600" : "w-2 bg-zinc-300 dark:bg-zinc-700"
@@ -74,26 +74,43 @@ export function OnboardingFlow({ open, onComplete }: OnboardingFlowProps) {
         <AnimatePresence mode="wait">
           <motion.div
             key={index}
-            initial={{ opacity: 0, x: 40 }}
+            initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -40 }}
-            transition={{ duration: 0.28 }}
-            className="max-w-md text-center"
+            exit={{ opacity: 0, x: -50 }}
+            transition={{ duration: 0.3 }}
+            className="flex max-w-md flex-col items-center text-center"
           >
-            <div
-              className={`mx-auto mb-8 flex h-32 w-32 items-center justify-center rounded-3xl bg-gradient-to-br ${slide.gradient} shadow-2xl`}
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className={`mb-8 flex h-32 w-32 items-center justify-center rounded-3xl bg-gradient-to-br ${slide.gradient} shadow-2xl`}
             >
               <Icon className="text-white" size={48} />
-            </div>
-            <h2 className="text-3xl font-bold text-zinc-900 dark:text-white">{slide.title}</h2>
-            <p className="mt-4 text-lg leading-relaxed text-zinc-500 dark:text-zinc-400">{slide.description}</p>
+            </motion.div>
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="mb-4 text-3xl font-bold text-zinc-900 dark:text-white"
+            >
+              {slide.title}
+            </motion.h2>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="text-lg leading-relaxed text-zinc-500 dark:text-zinc-400"
+            >
+              {slide.description}
+            </motion.p>
           </motion.div>
         </AnimatePresence>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.5 }}
           className="mt-16 flex gap-4"
         >
           {index > 0 ? (
@@ -116,6 +133,8 @@ export function OnboardingFlow({ open, onComplete }: OnboardingFlowProps) {
           </button>
         </motion.div>
       </div>
+
+      <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-zinc-50 to-transparent dark:from-zinc-900/50" />
     </div>
   );
 }

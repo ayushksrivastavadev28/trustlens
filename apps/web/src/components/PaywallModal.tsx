@@ -13,11 +13,11 @@ type PaywallModalProps = {
 };
 
 const FEATURES = [
-  "Unlimited trust scans",
-  "Proof Mode details",
-  "Community signals + clustering",
-  "History + deep result view",
-  "PDF export reports"
+  "Unlimited Trust Checks",
+  "Proof Mode (Behavioral Insights)",
+  "Community Risk Dashboard",
+  "Scam Trend Alerts",
+  "PDF Safety Reports"
 ];
 
 export function PaywallModal({ open, userId, onClose }: PaywallModalProps) {
@@ -41,50 +41,56 @@ export function PaywallModal({ open, userId, onClose }: PaywallModalProps) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/65 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4">
       <motion.div
         initial={{ y: "100%" }}
         animate={{ y: 0 }}
-        className="relative w-full max-w-2xl overflow-hidden rounded-t-[2.5rem] bg-white p-8 pb-10 shadow-2xl dark:bg-zinc-900 sm:rounded-[2.5rem]"
+        className="relative w-full max-w-lg overflow-hidden rounded-t-[2.5rem] bg-white p-8 pb-12 shadow-2xl dark:bg-zinc-900 sm:rounded-[2.5rem]"
       >
-        <button
-          onClick={onClose}
-          className="absolute right-5 top-5 rounded-full p-2 text-zinc-500 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
-          aria-label="Close paywall"
-        >
-          <X size={20} />
-        </button>
+        <div className="absolute right-6 top-6">
+          <button
+            onClick={onClose}
+            className="rounded-full p-2 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            aria-label="Close paywall"
+          >
+            <X size={24} className="text-zinc-500" />
+          </button>
+        </div>
 
-        <div className="mb-7 text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">TrustLens Pro</h2>
+        <div className="mb-6 flex justify-center sm:hidden">
+          <div className="h-1 w-16 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+        </div>
+
+        <div className="mb-10 text-center">
+          <h2 className="mb-2 text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">TrustLens Pro</h2>
           <p className="mt-2 text-zinc-500">Unleash the full power of AI security</p>
         </div>
 
-        <div className="mb-8 grid gap-3 sm:grid-cols-2">
+        <div className="mb-10 space-y-4">
           {FEATURES.map((feature) => (
-            <div key={feature} className="flex items-center gap-2 rounded-xl bg-zinc-50 px-3 py-2 text-sm dark:bg-zinc-800/60">
-              <CheckCircle2 className="text-blue-500" size={16} />
-              <span>{feature}</span>
+            <div key={feature} className="flex items-center gap-3">
+              <CheckCircle2 className="text-blue-500" size={22} />
+              <span className="font-medium text-zinc-700 dark:text-zinc-300">{feature}</span>
             </div>
           ))}
         </div>
 
-        <div className="mb-6 rounded-3xl border border-zinc-100 bg-zinc-50 p-5 dark:border-zinc-800 dark:bg-zinc-800/50">
-          <div className="flex items-end justify-between">
+        <div className="mb-8 rounded-3xl border border-zinc-100 bg-zinc-50 p-6 dark:border-zinc-800 dark:bg-zinc-800/50">
+          <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm text-zinc-500">Monthly Plan</div>
+              <div className="text-sm font-medium text-zinc-500">Monthly Plan</div>
               <div className="text-3xl font-bold text-zinc-900 dark:text-white">
-                INR 99<span className="ml-1 text-base font-normal text-zinc-500">/mo</span>
+                INR 99<span className="text-lg font-normal text-zinc-400">/mo</span>
               </div>
             </div>
-            <div className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-600 dark:bg-blue-900/30 dark:text-blue-300">
+            <div className="rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
               Best Value
             </div>
           </div>
         </div>
 
         {isRevenueCatConfigured() ? (
-          <div ref={paywallRef} className="min-h-[290px] rounded-2xl border border-zinc-100 bg-white p-2 dark:border-zinc-800 dark:bg-zinc-900" />
+          <div ref={paywallRef} className="min-h-[280px] rounded-2xl border border-zinc-100 bg-white p-2 dark:border-zinc-800 dark:bg-zinc-900" />
         ) : (
           <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800/40 dark:text-zinc-300">
             RevenueCat Web SDK is not configured. Add{" "}
@@ -93,8 +99,8 @@ export function PaywallModal({ open, userId, onClose }: PaywallModalProps) {
           </div>
         )}
 
-        <p className="mt-5 text-center text-xs text-zinc-400">
-          Cancel anytime. Payments are handled securely through RevenueCat.
+        <p className="mt-6 text-center text-xs text-zinc-400">
+          Cancel anytime. Secure payment powered by RevenueCat.
         </p>
       </motion.div>
     </div>
