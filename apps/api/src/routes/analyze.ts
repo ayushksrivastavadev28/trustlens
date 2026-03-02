@@ -5,6 +5,7 @@ import { requireAuth } from "../middleware/auth";
 import { analyzeLimiter } from "../middleware/rateLimit";
 import { sanitizeUrls, dayKey, labelToRisk, computeTrustScore, riskLevelFromScore } from "../utils";
 import { callAI } from "../services/ai";
+import { buildFallbackAIResponse } from "../services/aiFallback";
 import { getCollections } from "../db";
 import { computeCommunitySignals } from "../services/community";
 import { asyncHandler } from "../asyncHandler";
@@ -40,6 +41,7 @@ router.post("/analyze", requireAuth, analyzeLimiter, asyncHandler(async (req, re
   const requestId = randomUUID();
 
   let aiResponse: any;
+  let aiFallbackUsed = false;
   try {
     aiResponse = await callAI({
       text: parsed.data.text,
@@ -49,12 +51,14 @@ router.post("/analyze", requireAuth, analyzeLimiter, asyncHandler(async (req, re
       requestId
     });
   } catch (err: any) {
-    const detail = String(err?.message || "Unknown AI error");
-    const isLikelyLocalhostConfig = detail.includes("localhost") && process.env.NODE_ENV === "production";
-    return res.status(502).json({
-      error: isLikelyLocalhostConfig
-        ? "AI service unavailable: AI_SERVICE_URL points to localhost in production. Use your Railway AI service URL."
-        : `AI service unavailable: ${detail}`
+    aiFallbackUsed = true;
+    aiResponse = buildFallbackAIResponse({
+      text: parsed.data.text,
+      inputType: parsed.data.inputType,
+      urls,
+      locale: "auto",
+      requestId,
+      reason: String(err?.message || "AI service unavailable")
     });
   }
 
@@ -99,6 +103,7 @@ router.post("/analyze", requireAuth, analyzeLimiter, asyncHandler(async (req, re
     scanId: result.insertedId.toString(),
     trustScore,
     riskLevel,
+    degradedMode: aiFallbackUsed,
     community,
     subscription: {
       isPro,

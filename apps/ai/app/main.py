@@ -6,7 +6,7 @@ import math
 import os
 import re
 from datetime import datetime, timezone
-from typing import Dict, List, Literal, Optional, Sequence, Tuple
+from typing import Dict, List, Literal, Optional, Sequence, Tuple, Union
 
 import httpx
 import numpy as np
@@ -273,7 +273,7 @@ def _cheap_embedding(text: str, dims: int = 384) -> List[float]:
 def _heuristic_text_classifier(
     text: str,
     kind: Literal["sms", "email", "job"],
-) -> Dict[str, float | str]:
+) -> Dict[str, Union[float, str]]:
     lower = text.lower()
     if kind == "job":
         hit_count = sum(1 for term in JOB_SCAM_TERMS if term in lower)
@@ -324,7 +324,7 @@ def _job_keyword_signal(text: str) -> Dict[str, object]:
     }
 
 
-def _parse_hf_classification(data: object) -> Dict[str, float | str]:
+def _parse_hf_classification(data: object) -> Dict[str, Union[float, str]]:
     if isinstance(data, list) and data and isinstance(data[0], list):
         data = data[0]
     if isinstance(data, list) and data:
