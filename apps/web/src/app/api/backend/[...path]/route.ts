@@ -10,11 +10,14 @@ function isLocalHost(host: string) {
   return h.startsWith("localhost") || h.startsWith("127.0.0.1");
 }
 
-function resolveApiBase(req: NextRequest) {
-  const explicit = process.env.API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL;
-  if (explicit) return explicit;
-  if (isLocalHost(req.nextUrl.host)) return "http://127.0.0.1:5000";
-  return "";
+function hasScheme(value: string) {
+  return /^https?:\/\//i.test(value);
+}
+
+function withScheme(value: string) {
+  if (hasScheme(value)) return value;
+  if (isLocalHost(value)) return `http://${value}`;
+  return `https://${value}`;
 }
 
 function buildTargetUrl(req: NextRequest, path: string[], baseUrl: string) {
@@ -23,9 +26,47 @@ function buildTargetUrl(req: NextRequest, path: string[], baseUrl: string) {
   return `${base}/${joinedPath}${req.nextUrl.search}`;
 }
 
+function unique(values: string[]) {
+  return Array.from(new Set(values.filter(Boolean)));
+}
+
+function resolveApiBaseCandidates(req: NextRequest) {
+  const rawEnv = process.env.API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "";
+  const localFallback = isLocalHost(req.nextUrl.host) ? "http://127.0.0.1:5000" : "";
+  if (!rawEnv) return localFallback ? [localFallback] : [];
+
+  const raw = rawEnv.trim();
+  const candidates: string[] = [];
+  candidates.push(withScheme(raw));
+
+  // Recovery path: users sometimes set Railway private DNS in Vercel env.
+  // Example: trustlensapi.railway.internal -> try generated public candidates too.
+  if (raw.endsWith(".railway.internal")) {
+    const service = raw.replace(".railway.internal", "").trim();
+    if (service) {
+      candidates.push(`https://${service}.up.railway.app`);
+      candidates.push(`https://${service}-production.up.railway.app`);
+      candidates.push(`http://${raw}`);
+    }
+  }
+
+  if (localFallback) candidates.push(localFallback);
+  return unique(candidates);
+}
+
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = 12000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function proxy(req: NextRequest, path: string[]) {
-  const apiBase = resolveApiBase(req);
-  if (!apiBase) {
+  const candidates = resolveApiBaseCandidates(req);
+  if (candidates.length === 0) {
     return NextResponse.json(
       {
         error:
@@ -34,8 +75,6 @@ async function proxy(req: NextRequest, path: string[]) {
       { status: 500 }
     );
   }
-
-  const targetUrl = buildTargetUrl(req, path, apiBase);
   const headers = new Headers();
   const passthrough = ["authorization", "content-type", "cookie", "user-agent", "accept"];
   for (const [key, value] of req.headers.entries()) {
@@ -58,39 +97,25 @@ async function proxy(req: NextRequest, path: string[]) {
     }
   }
 
-  let upstream: Response;
-  try {
-    upstream = await fetch(targetUrl, init);
-  } catch {
-    if (targetUrl.includes("localhost")) {
-      try {
-        const retryUrl = targetUrl.replace("localhost", "127.0.0.1");
-        upstream = await fetch(retryUrl, init);
-      } catch {
-        return NextResponse.json(
-          {
-            error:
-              "Unable to reach backend API from web proxy. Check apps/api is running and API_BASE_URL/NEXT_PUBLIC_API_BASE_URL is correct."
-          },
-          { status: 502 }
-        );
-      }
-    } else {
-      return NextResponse.json(
-        {
-          error:
-            "Unable to reach backend API from web proxy. Check apps/api is running and API_BASE_URL/NEXT_PUBLIC_API_BASE_URL is correct."
-        },
-        { status: 502 }
-      );
+  let upstream: Response | null = null;
+  const tried: string[] = [];
+  for (const base of candidates) {
+    const targetUrl = buildTargetUrl(req, path, base);
+    tried.push(base);
+    try {
+      upstream = await fetchWithTimeout(targetUrl, init);
+      break;
+    } catch {
+      // try next candidate
     }
   }
 
-  if (!upstream) {
+  if (upstream === null) {
     return NextResponse.json(
       {
         error:
-          "Unable to reach backend API from web proxy. Check apps/api is running and API_BASE_URL/NEXT_PUBLIC_API_BASE_URL is correct."
+          "Unable to reach backend API from web proxy. Check apps/api is running and API_BASE_URL/NEXT_PUBLIC_API_BASE_URL is correct.",
+        triedBases: tried
       },
       { status: 502 }
     );

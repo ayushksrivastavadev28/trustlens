@@ -86,6 +86,7 @@ Create two services from the same repo.
 - Set both env vars:
   - `API_BASE_URL` = your public API URL (example: `https://your-api.up.railway.app`)
   - `NEXT_PUBLIC_API_BASE_URL` = same public API URL
+- Do not use `*.railway.internal` in Vercel env vars (private Railway network only).
 
 ## RevenueCat Setup
 - Create entitlement id: `pro`
