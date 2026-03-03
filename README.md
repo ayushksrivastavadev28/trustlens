@@ -47,6 +47,11 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8001
 ```
 
+Optional (only if you want full local-model inference, proof attribution, and PyGOD locally):
+```
+pip install -r requirements.local.txt
+```
+
 ### API service
 ```
 cd apps/api
