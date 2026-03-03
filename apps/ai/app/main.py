@@ -9,12 +9,24 @@ from datetime import datetime, timezone
 from typing import Dict, List, Literal, Optional, Sequence, Tuple, Union
 
 import httpx
-import numpy as np
-import tldextract
-import whois
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
+
+try:
+    import numpy as np
+except Exception:  # pragma: no cover
+    np = None  # type: ignore[assignment]
+
+try:
+    import tldextract
+except Exception:  # pragma: no cover
+    tldextract = None  # type: ignore[assignment]
+
+try:
+    import whois
+except Exception:  # pragma: no cover
+    whois = None  # type: ignore[assignment]
 
 load_dotenv()
 
@@ -228,6 +240,12 @@ def _normalize(vec: Sequence[float]) -> List[float]:
 
 
 def _resize_vector(vec: Sequence[float], target_dim: int) -> List[float]:
+    if np is None:
+        folded = [0.0] * target_dim
+        for idx, value in enumerate(vec):
+            folded[idx % target_dim] += float(value)
+        return _normalize(folded)
+
     source = np.array(vec, dtype=float).flatten()
     if source.size == 0:
         return [0.0] * target_dim
@@ -351,6 +369,23 @@ def _parse_zero_shot_result(data: object) -> Dict[str, List[object]]:
 
 
 def _pool_embedding(raw: object) -> Optional[List[float]]:
+    if np is None:
+        if isinstance(raw, list):
+            flat: List[float] = []
+            stack = [raw]
+            while stack:
+                current = stack.pop()
+                if isinstance(current, list):
+                    stack.extend(current)
+                else:
+                    try:
+                        flat.append(float(current))
+                    except Exception:
+                        pass
+            if flat:
+                return _normalize(flat[:384])
+        return None
+
     try:
         arr = np.array(raw, dtype=float)
     except Exception:
@@ -907,15 +942,18 @@ def _url_flags(original_url: str, final_url: str, redirects: int) -> List[str]:
         except ValueError:
             pass
 
-        extracted = tldextract.extract(final_url)
-        tld = extracted.suffix.lower()
-        if tld in SUSPICIOUS_TLDS:
-            flags.append("suspicious_tld")
+        if tldextract is not None:
+            extracted = tldextract.extract(final_url)
+            tld = extracted.suffix.lower()
+            if tld in SUSPICIOUS_TLDS:
+                flags.append("suspicious_tld")
 
     return flags
 
 
 def _domain_age_days(url: str) -> Optional[int]:
+    if whois is None or tldextract is None:
+        return None
     try:
         host = httpx.URL(url).host
         if not host:
@@ -1045,6 +1083,12 @@ def _build_graph_features(
 
 
 def _heuristic_graph_risk(features: List[List[float]]) -> float:
+    if np is None:
+        flat = [value for row in features for value in row]
+        if not flat:
+            return 0.0
+        return _clip(sum(flat) / len(flat))
+
     arr = np.array(features, dtype=float)
     if arr.size == 0:
         return 0.0
@@ -1058,6 +1102,8 @@ def _heuristic_graph_risk(features: List[List[float]]) -> float:
 
 
 def _pygod_graph_risk(features: List[List[float]]) -> Optional[float]:
+    if np is None:
+        return None
     if not (_module_available("pygod") and _module_available("torch_geometric")):
         return None
     try:
