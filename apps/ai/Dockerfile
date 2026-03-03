@@ -19,7 +19,8 @@ RUN set -eux; \
     fi; \
     cp "$PROJECT_ROOT/requirements.txt" /app/requirements.txt; \
     cp -r "$PROJECT_ROOT/app" /app/app; \
+    if [ -f "$PROJECT_ROOT/start.py" ]; then cp "$PROJECT_ROOT/start.py" /app/start.py; fi; \
     pip install --upgrade pip && pip install -r /app/requirements.txt; \
     rm -rf /src
 
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8001}"]
+CMD ["python", "start.py"]

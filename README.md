@@ -83,8 +83,8 @@ Create two services from the same repo.
 **AI service**
 - Root Directory: `apps/ai`
 - Build Command: `pip install -r requirements.txt`
-- Start Command: `python -c "import os,uvicorn; uvicorn.run('app.main:app', host='0.0.0.0', port=int(os.getenv('PORT','8001')))"`  
-  (This avoids `$PORT` shell-expansion issues on Railway.)
+- Start Command: `python start.py`  
+  (`start.py` reads the Railway `PORT` env safely and avoids `$PORT` shell-expansion issues.)
 
 ### Vercel (Web)
 - Root Directory: `apps/web`
